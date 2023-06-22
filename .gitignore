@@ -1,0 +1,10 @@
+vendor/
+composer.lock
+.env
+
+/public/.htaccess
+
+/.vscode/
+
+/src/images
+/private_logins.txt
