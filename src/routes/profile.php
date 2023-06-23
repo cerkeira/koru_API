@@ -11,7 +11,7 @@ $app->get('/profile/{id}', function (Request $request, Response $response) {
   
     $eventsSql = "SELECT COUNT(event_id_event) AS numberOfEvents FROM user_has_event WHERE user_id_user LIKE :id";
     $coinsSql = "SELECT SUM(amount) AS coinsInvested FROM transaction WHERE user_has_event_user_id_user LIKE :id AND type LIKE 2";
-    $phoneSql = "SELECT username, phone FROM user WHERE id_user LIKE :id";
+    $emailSql = "SELECT username, email FROM user WHERE id_user LIKE :id";
     $recentSql = "SELECT id_transaction, user_has_event_event_id_event, type, project_id_project, coin_id_coin, amount FROM transaction WHERE user_has_event_user_id_user LIKE :id ORDER BY id_transaction DESC LIMIT 3;";
 
 
@@ -29,10 +29,10 @@ $app->get('/profile/{id}', function (Request $request, Response $response) {
         $stmt->execute();
         $coinsInvested = $stmt->fetchColumn();
 
-        $stmt = $conn->prepare($phoneSql);
+        $stmt = $conn->prepare($emailSql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
-        $phone = $stmt->fetchAll();
+        $email = $stmt->fetchAll();
 
         $stmt = $conn->prepare($recentSql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
@@ -40,10 +40,10 @@ $app->get('/profile/{id}', function (Request $request, Response $response) {
         $recentTransactions =  $stmt->fetchAll(PDO::FETCH_ASSOC);
   
         $profile = array(
-            "username" => $phone[0]['username'],
+            "username" => $email[0]['username'],
             "numberOfEvents" => $numberOfEvents,
             "coinsInvested" => $coinsInvested,
-            "phone" => $phone[0]['phone'],
+            "email" => $email[0]['email'],
             "recentTransactions" => $recentTransactions
         );
   

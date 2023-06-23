@@ -73,17 +73,17 @@ $app->post('/user/register', function (Request $request, Response $response) {
   $data = $request->getParsedBody();
   $pass = $data['password'];
   $username = $data['username'];
-  $phone = $data['phone'];
+  $email = $data['email'];
   $password = password_hash($pass, PASSWORD_DEFAULT);
 
-  $sql = "INSERT INTO user (id_user, username, phone, password, token, token_expire) VALUES (NULL, :username, :phone, :password, NULL, NULL)";
+  $sql = "INSERT INTO user (id_user, username, email, password, token, token_expire) VALUES (NULL, :username, :email, :password, NULL, NULL)";
 
   try {
       $db = new Db();
       $conn = $db->connect();
       $stmt = $conn->prepare($sql);
       $stmt->bindParam(':username', $username);
-      $stmt->bindParam(':phone', $phone);
+      $stmt->bindParam(':email', $email);
       $stmt->bindParam(':password', $password);
       $stmt->execute();
 
