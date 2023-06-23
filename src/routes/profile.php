@@ -5,14 +5,14 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Models\DB;
 
 // PROFILE
-$app->get('/profile/{id}', function (Request $request, Response $response) {
+$app->get('/profile', function (Request $request, Response $response) {
 
-    $id = $request->getAttribute('id');
+    $id = $request->getHeaderLine('id');
   
-    $eventsSql = "SELECT COUNT(event_id_event) AS numberOfEvents FROM user_has_event WHERE user_id_user LIKE :id";
-    $coinsSql = "SELECT SUM(amount) AS coinsInvested FROM transaction WHERE user_has_event_user_id_user LIKE :id AND type LIKE 2";
-    $emailSql = "SELECT username, email FROM user WHERE id_user LIKE :id";
-    $recentSql = "SELECT id_transaction, user_has_event_event_id_event, type, project_id_project, coin_id_coin, amount FROM transaction WHERE user_has_event_user_id_user LIKE :id ORDER BY id_transaction DESC LIMIT 3;";
+    $eventsSql = "SELECT COUNT(event_id_event) AS numberOfEvents FROM user_has_event WHERE user_id_user = :id";
+    $coinsSql = "SELECT SUM(amount) AS coinsInvested FROM transaction WHERE user_has_event_user_id_user = :id AND type = 2";
+    $emailSql = "SELECT username, email FROM user WHERE id_user = :id";
+    $recentSql = "SELECT id_transaction, user_has_event_event_id_event, type, coin_id_coin, amount, project.name_project  FROM transaction INNER JOIN project ON transaction.project_id_project = project.id_project WHERE user_has_event_user_id_user LIKE :id AND type = 2 ORDER BY id_transaction DESC LIMIT 3";
 
 
     try {
