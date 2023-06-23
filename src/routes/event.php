@@ -5,10 +5,10 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Models\DB;
 
 // BALANÇO
-$app->get('/event/balance/{event}/{user}', function (Request $request, Response $response) {
+$app->get('/event/balance/{event}', function (Request $request, Response $response) {
 
     $event = $request->getAttribute('event');
-    $user = $request->getAttribute('user');
+    $user = $request->getHeaderLine('id');
 
 
     $sql = "SELECT type, transaction.amount, transaction.coin_id_coin, coin.name_coin FROM transaction INNER JOIN coin ON transaction.coin_id_coin = coin.id_coin WHERE user_has_event_event_id_event = :event AND user_has_event_user_id_user = :user";
@@ -62,14 +62,14 @@ $app->get('/event/balance/{event}/{user}', function (Request $request, Response 
 });
 
 //   VOTAR
-$app->post('/event/vote/{event}/{user}', function (Request $request, Response $response) {
+$app->post('/event/vote/{event}', function (Request $request, Response $response) {
     $data = $request->getParsedBody();
     $type = 2;
     $amount = $data["amount"];
     $project = $data["project"];
     $coin = $data["coin"];
     $event = $request->getAttribute('event');
-    $user = $request->getAttribute('user');
+    $user = $request->getHeaderLine('id');
 
     $sql = "INSERT INTO transaction (type, amount, project_id_project, coin_id_coin, user_has_event_event_id_event, user_has_event_user_id_user) VALUES (:type, :amount, :project, :coin, :event, :user)";
 

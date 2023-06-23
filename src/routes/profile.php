@@ -5,7 +5,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Models\DB;
 
 // PROFILE
-$app->get('/profile', function (Request $request, Response $response) {
+$app->get('/profile/user', function (Request $request, Response $response) {
 
     $id = $request->getHeaderLine('id');
   
@@ -61,9 +61,9 @@ $app->get('/profile', function (Request $request, Response $response) {
 });
 
 // EVENT LIST
-$app->get('/profile/events/{id}', function (Request $request, Response $response) {
+$app->get('/profile/events', function (Request $request, Response $response) {
 
-    $id = $request->getAttribute('id');
+    $id = $request->getHeaderLine('id');
 
 
     $sql = "SELECT event.id_event, event.logo_event, event.name_event, event.start_date, event.end_date FROM event INNER JOIN user_has_event ON user_has_event.event_id_event = event.id_event WHERE user_has_event.user_id_user = :id";
@@ -94,9 +94,9 @@ $app->get('/profile/events/{id}', function (Request $request, Response $response
 
 
 // MUDAR PASS
-$app->post('/profile/changepass/{id}', function (Request $request, Response $response) {
+$app->post('/profile/changepass', function (Request $request, Response $response) {
     
-      $id = $request->getAttribute('id');
+      $id = $request->getHeaderLine('id');
       $data = $request->getParsedBody();
       $newpass = $data["newpass"];
       $newhash = password_hash($newpass, PASSWORD_DEFAULT);
