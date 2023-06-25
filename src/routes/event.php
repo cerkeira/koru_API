@@ -41,10 +41,11 @@ $app->get('/event/balance/{event}', function (Request $request, Response $respon
                 if (!isset($responseData[$transaction['name_coin']])) {
                     $responseData[$transaction['name_coin']] = [
                         'id' => $transaction['coin_id_coin'],
-                        'balance' =>  max(0, $transaction['amount'])
+                        'balance' => max(0, $transaction['amount'])
                     ];
+                } else {
+                    $responseData[$transaction['name_coin']]['balance'] = max(0, $responseData[$transaction['name_coin']]['balance'] - $transaction['amount']);
                 }
-                $responseData[$transaction['name_coin']]['balance'] = max(0, $responseData[$transaction['name_coin']]['balance'] - $transaction['amount']);
             }
         }
 
@@ -261,8 +262,12 @@ $app->get('/event/info/{id}', function (Request $request, Response $response) {
         );
 
         $db = null;
-
-        $imagePath = $result['info'][0]['logo_event'];
+        
+        if($result['info'][0]['logo_event'] != ''){
+            $imagePath = $result['info'][0]['logo_event'];
+        }else{
+            $imagePath = 'test.png';
+        }
         $imageFullPath = __DIR__ . '/../images/event/' . $imagePath;
 
 
@@ -315,15 +320,15 @@ $app->get('/event/rank/{id}/{coin}', function (Request $request, Response $respo
         // Imagem para base64
         function convertImageToBase64($imagePath)
         {
-            if ($imagePath != null) {
+            if($imagePath == ''){
+                $imagePath = 'test.jpg';
+            }
                 $imageFullPath = __DIR__ . '/../images/project/' . $imagePath;
 
                 if (file_exists($imageFullPath)) {
                     $imageContent = file_get_contents($imageFullPath);
                     return base64_encode($imageContent);
                 }
-            }
-
             return null;
         }
 
@@ -395,8 +400,14 @@ $app->get('/event/projects/{event}', function (Request $request, Response $respo
 
         $db = null;
 
+        
         foreach ($result as &$item) {
-            $imagePath = $item['logo_project'];
+
+            if($item['logo_project'] == ''){
+                $imagePath = 'test.jpg';
+            }else{
+                $imagePath = $item['logo_project'];
+            }
 
             if ($imagePath != null) {
                 $imageFullPath = __DIR__ . '/../images/project/' . $imagePath;

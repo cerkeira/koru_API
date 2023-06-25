@@ -35,6 +35,8 @@ $app->add(new AuthenticationMiddleware($pdo, $whitelist));
 require '../src/routes/event.php';
 require '../src/routes/user.php';
 require '../src/routes/profile.php';
+require '../src/routes/qr.php';
+
 
 
 // $app->get('/transaction', function (Request $request, Response $response) {
