@@ -76,6 +76,24 @@ $app->get('/profile/events', function (Request $request, Response $response) {
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
         $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($result as &$item) {
+
+            if($item['logo_event'] == "" || $item['logo_event'] == null){
+                $imagePath = 'test.png';
+            }else{
+                $imagePath = $item['logo_event'];
+            }
+
+                $imageFullPath = __DIR__ . '/../images/event/' . $imagePath;
+
+                if (file_exists($imageFullPath)) {
+                    $imageContent = file_get_contents($imageFullPath);
+                    $item['logo_event'] = base64_encode($imageContent);
+                }
+            
+        }
+       
     
         $db = null;
     

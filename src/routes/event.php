@@ -292,13 +292,10 @@ $app->get('/event/info/{id}', function (Request $request, Response $response) {
 
 
 // LIVE RANKING
-$app->get('/event/rank/{id}/{coin}', function (Request $request, Response $response) {
-
+$app->get('/event/rank/{id}', function (Request $request, Response $response) {
     $id = $request->getAttribute('id');
-    $coin = $request->getAttribute('coin');
 
-
-    $sql = "SELECT project_id_project, amount, name_project, logo_project FROM transaction INNER JOIN project ON transaction.project_id_project = project.id_project WHERE user_has_event_event_id_event = :id AND type = 2 AND coin_id_coin = :coin";
+    $sql = "SELECT project_id_project, transaction.coin_id_coin, transaction.amount, project.name_project, project.logo_project, coin.name_coin FROM transaction INNER JOIN project ON transaction.project_id_project = project.id_project INNER JOIN coin ON transaction.coin_id_coin = coin.id_coin WHERE user_has_event_event_id_event = :id AND type = 2";
 
     $projectSql = "SELECT id_project, name_project, logo_project FROM project WHERE event_id_event = :id";
 
@@ -308,7 +305,6 @@ $app->get('/event/rank/{id}/{coin}', function (Request $request, Response $respo
 
         $stmt = $conn->prepare($sql);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        $stmt->bindValue(':coin', $coin, PDO::PARAM_INT);
         $stmt->execute();
         $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -317,58 +313,93 @@ $app->get('/event/rank/{id}/{coin}', function (Request $request, Response $respo
         $stmt->execute();
         $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Imagem para base64
         function convertImageToBase64($imagePath)
         {
-            if($imagePath == ''){
+            if ($imagePath == '') {
                 $imagePath = 'test.jpg';
             }
-                $imageFullPath = __DIR__ . '/../images/project/' . $imagePath;
+            $imageFullPath = __DIR__ . '/../images/project/' . $imagePath;
 
-                if (file_exists($imageFullPath)) {
-                    $imageContent = file_get_contents($imageFullPath);
-                    return base64_encode($imageContent);
-                }
+            if (file_exists($imageFullPath)) {
+                $imageContent = file_get_contents($imageFullPath);
+                return base64_encode($imageContent);
+            }
             return null;
         }
 
+        $final = array();
 
         foreach ($result as $item) {
             $projectId = $item['project_id_project'];
+            $coinId = $item['coin_id_coin'];
+            $coinName = $item['name_coin'];
             $amount = $item['amount'];
-            $name[$projectId] = $item['name_project'];
-            $logo_project[$projectId] = convertImageToBase64($item['logo_project']);
+            $name = $item['name_project'];
+            $logo = convertImageToBase64($item['logo_project']);
 
-            if (!isset($sums[$projectId])) {
-                $sums[$projectId] = 0;
+            
+
+            if (!isset($final[$coinId])) {
+                $final[$coinId] = array(
+                    "coin_id_coin" => $coinId,
+                    "name_coin" => $coinName,
+                    "projects" => array()
+                );
             }
 
-            $sums[$projectId] += $amount;
+            if (!isset($final[$coinId]['projects'][$projectId])) {
+                $final[$coinId]['projects'][$projectId] = array(
+                    "id_project" => $projectId,
+                    "name_project" => $name,
+                    "logo_project" => $logo,
+                    "amount_sum" => 0
+                );
+            }
+
+            $final[$coinId]['projects'][$projectId]['amount_sum'] += $amount;
+        }
+
+
+        foreach ($final as &$coinData) {
+            $coinData['projects'] = array_values($coinData['projects']);
+            usort($coinData['projects'], function ($a, $b) {
+                $sumA = $a['amount_sum'];
+                $sumB = $b['amount_sum'];
+                return $sumB <=> $sumA;
+            });
         }
 
         foreach ($projects as $project) {
             $projectId = $project['id_project'];
-
-            if (!isset($final[$projectId])) {
-                $amount = isset($sums[$projectId]) ? $sums[$projectId] : 0;
-                $name = $project['name_project'];
-                $logo = convertImageToBase64($project['logo_project']);
-
-                $arrayproject = array(
-                    "id_project" => $projectId,
-                    "amount" => $amount,
-                    "name_project" => $name,
-                    "logo_project" => $logo
-                );
-
-                $final[$projectId] = $arrayproject;
+            $projectName = $project['name_project'];
+            $projectLogo = convertImageToBase64($project['logo_project']);
+        
+            $found = false;
+        
+            foreach ($final as &$coinData) {
+                foreach ($coinData['projects'] as &$existingProject) {
+                    if ($existingProject['id_project'] === $projectId) {
+                        $found = true;
+                        break 2;
+                    }
+                }
+            }
+        
+            if (!$found) {
+                foreach ($final as &$coinData) {
+                    $coinData['projects'][] = array(
+                        "id_project" => $projectId,
+                        "name_project" => $projectName,
+                        "logo_project" => $projectLogo,
+                        "amount_sum" => 0,
+                    );
+                }
             }
         }
 
         $db = null;
-        usort($final, fn ($a, $b) => $b['amount'] <=> $a['amount']);
-
-        $response->getBody()->write(json_encode($final));
+        
+        $response->getBody()->write(json_encode(array_values($final)));
         return $response
             ->withHeader('content-type', 'application/json')
             ->withStatus(200);
@@ -380,6 +411,10 @@ $app->get('/event/rank/{id}/{coin}', function (Request $request, Response $respo
             ->withStatus(500);
     }
 });
+
+
+
+
 
 // PROJETOS
 $app->get('/event/projects/{event}', function (Request $request, Response $response) {
