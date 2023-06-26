@@ -436,7 +436,7 @@ $app->get('/event/rank/{id}', function (Request $request, Response $response) {
         }
     }
 
-    
+
         foreach ($projects as $project) {
             $projectId = $project['id_project'];
             $projectName = $project['name_project'];
@@ -507,7 +507,7 @@ $app->get('/event/projects/{event}', function (Request $request, Response $respo
         foreach ($result as &$item) {
 
             if($item['logo_project'] == ''){
-                $imagePath = 'test.jpg';
+                $imagePath = 'test.png';
             }else{
                 $imagePath = $item['logo_project'];
             }
