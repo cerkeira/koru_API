@@ -74,6 +74,8 @@ $app->post('/qr/read', function (Request $request, Response $response) {
 
     $norepeatSql = "SELECT COUNT(id_transaction) FROM transaction WHERE coin_id_coin = :coin AND user_has_event_user_id_user = :user";
 
+    $confirmSql = "SELECT event_id_event FROM user_has_event WHERE user_id_user = :user";
+
     try {
         $db = new Db();
         $conn = $db->connect();
@@ -94,14 +96,22 @@ $app->post('/qr/read', function (Request $request, Response $response) {
         $stmt->execute();
         $norepeat = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        $stmt = $conn->prepare($confirmSql);
+        $stmt->bindValue(':user', $user, PDO::PARAM_INT);
+        $stmt->execute();
+        $confirm = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
         if($norepeat[0]['COUNT(id_transaction)'] == 0 && $token[0]['expire_date'] >= date('Y-m-d H:i:s')){
 
-            $stmt = $conn->prepare($eventSql);
-            $stmt->bindValue(':user', $user, PDO::PARAM_INT);
-            $stmt->bindValue(':event', $event[0]['event_id_event'], PDO::PARAM_INT);
-            $stmt->bindValue(':role', $token[0]['role'], PDO::PARAM_INT);
-            $stmt->execute();
-    
+            $eventIds = array_column($confirm, 'event_id_event');
+            if (!in_array($event[0]['event_id_event'], $eventIds)) {
+                    $stmt = $conn->prepare($eventSql);
+                    $stmt->bindValue(':user', $user, PDO::PARAM_INT);
+                    $stmt->bindValue(':event', $event[0]['event_id_event'], PDO::PARAM_INT);
+                    $stmt->bindValue(':role', $token[0]['role'], PDO::PARAM_INT);
+                    $stmt->execute();
+            }
+
             $stmt = $conn->prepare($transactionSql);
             $stmt->bindValue(':type', 1, PDO::PARAM_INT);
             $stmt->bindValue(':amount', $token[0]['amount'], PDO::PARAM_INT);
