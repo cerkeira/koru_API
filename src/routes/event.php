@@ -299,6 +299,9 @@ $app->get('/event/rank/{id}', function (Request $request, Response $response) {
 
     $projectSql = "SELECT id_project, name_project, logo_project FROM project WHERE event_id_event = :id";
 
+    $coinsSql = "SELECT id_coin, name_coin FROM coin WHERE event_id_event = :id";
+
+
     try {
         $db = new Db();
         $conn = $db->connect();
@@ -369,6 +372,71 @@ $app->get('/event/rank/{id}', function (Request $request, Response $response) {
             });
         }
 
+        if ($final != []){
+
+            foreach ($projects as $project) {
+                $projectId = $project['id_project'];
+                $projectName = $project['name_project'];
+                $projectLogo = convertImageToBase64($project['logo_project']);
+            
+                $found = false;
+            
+                foreach ($final as &$coinData) {
+                    foreach ($coinData['projects'] as &$existingProject) {
+                        if ($existingProject['id_project'] === $projectId) {
+                            $found = true;
+                            break 2;
+                        }
+                    }
+                }
+            
+                if (!$found) {
+                    foreach ($final as &$coinData) {
+                        $coinData['projects'][] = array(
+                            "id_project" => $projectId,
+                            "name_project" => $projectName,
+                            "logo_project" => $projectLogo,
+                            "amount_sum" => 0,
+                        );
+                    }
+                }
+            }
+        }else{
+        $stmt = $conn->prepare($coinsSql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $coins = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($coins as $item) {
+            $coinId = $item['id_coin'];
+            $coinName = $item['name_coin'];
+            
+
+            if (!isset($final[$coinId])) {
+                $final[$coinId] = array(
+                    "coin_id_coin" => $coinId,
+                    "name_coin" => $coinName,
+                    "projects" => array()
+                );
+            }
+        }
+
+            foreach ($projects as $project) {
+                $projectId = $project['id_project'];
+                $projectName = $project['name_project'];
+                $projectLogo = convertImageToBase64($project['logo_project']);
+                foreach ($final as &$coinData) {
+                    $coinData['projects'][] = array(
+                        "id_project" => $projectId,
+                        "name_project" => $projectName,
+                        "logo_project" => $projectLogo,
+                        "amount_sum" => 0,
+                    );
+                }
+        }
+    }
+
+    
         foreach ($projects as $project) {
             $projectId = $project['id_project'];
             $projectName = $project['name_project'];
