@@ -58,23 +58,17 @@ $app->post('/qr/create', function (Request $request, Response $response) {
     }
 });
 
-$app->post('/qr/read', function (Request $request, Response $response) {
+$app->get('/qr/read', function (Request $request, Response $response) {
     $data = $request->getParsedBody();
     $token = $data["token"];
     $user = $request->getHeaderLine('id');
 
 
-    $sql = "SELECT event_id_event FROM coin WHERE id_coin = :coin";
-
-    $eventSql = "INSERT INTO user_has_event (user_id_user, event_id_event, role_ev_id_role_ev) VALUES (:user, :event, :role)";
+    $sql = "SELECT coin.event_id_event, event.name_event FROM coin INNER JOIN event ON coin.event_id_event = event.id_event WHERE id_coin = :coin";
 
     $tokenSql = "SELECT expire_date, amount, coin_id_coin, role FROM transaction_token WHERE token = :token";
 
-    $transactionSql = "INSERT INTO transaction (type, amount, coin_id_coin, user_has_event_event_id_event, user_has_event_user_id_user) VALUES (:type, :amount, :coin, :event, :user)";
-
     $norepeatSql = "SELECT COUNT(id_transaction) FROM transaction WHERE coin_id_coin = :coin AND user_has_event_user_id_user = :user";
-
-    $confirmSql = "SELECT event_id_event FROM user_has_event WHERE user_id_user = :user";
 
     try {
         $db = new Db();
@@ -96,12 +90,71 @@ $app->post('/qr/read', function (Request $request, Response $response) {
         $stmt->execute();
         $norepeat = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        if($norepeat[0]['COUNT(id_transaction)'] == 0 && $token[0]['expire_date'] >= date('Y-m-d H:i:s')){
+
+                $result = array(
+                    "name_event" => $event[0]['name_event'],
+                    "coin" => $token[0]['coin_id_coin'],
+                    "amount" => $token[0]['amount']
+                );
+
+        }else{
+            $result="You can't get more of these coins.";
+        }
+    
+
+        $db = null;
+        $response->getBody()->write(json_encode($result));
+        return $response
+            ->withHeader('content-type', 'application/json')
+            ->withStatus(200);
+    } catch (PDOException $e) {
+        $error = array(
+            "message" => $e->getMessage()
+        );
+
+        $response->getBody()->write(json_encode($error));
+        return $response
+            ->withHeader('content-type', 'application/json')
+            ->withStatus(500);
+    }
+
+});
+
+$app->post('/qr/read', function (Request $request, Response $response) {
+    $data = $request->getParsedBody();
+    $token = $data["token"];
+    $user = $request->getHeaderLine('id');
+
+
+    $sql = "SELECT event_id_event FROM coin WHERE id_coin = :coin";
+
+    $tokenSql = "SELECT expire_date, amount, coin_id_coin, role FROM transaction_token WHERE token = :token";
+
+    $eventSql = "INSERT INTO user_has_event (user_id_user, event_id_event, role_ev_id_role_ev) VALUES (:user, :event, :role)";
+
+    $transactionSql = "INSERT INTO transaction (type, amount, coin_id_coin, user_has_event_event_id_event, user_has_event_user_id_user) VALUES (:type, :amount, :coin, :event, :user)";
+
+    $confirmSql = "SELECT event_id_event FROM user_has_event WHERE user_id_user = :user";
+
+    try {
+        $db = new Db();
+        $conn = $db->connect();
+
+        $stmt = $conn->prepare($tokenSql);
+        $stmt->bindValue(':token', $token, PDO::PARAM_INT);
+        $stmt->execute();
+        $token = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmt = $conn->prepare($sql);
+        $stmt->bindValue(':coin', $token[0]['coin_id_coin'], PDO::PARAM_INT);
+        $stmt->execute();
+        $event = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
         $stmt = $conn->prepare($confirmSql);
         $stmt->bindValue(':user', $user, PDO::PARAM_INT);
         $stmt->execute();
         $confirm = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        if($norepeat[0]['COUNT(id_transaction)'] == 0 && $token[0]['expire_date'] >= date('Y-m-d H:i:s')){
 
             $eventIds = array_column($confirm, 'event_id_event');
             if (!in_array($event[0]['event_id_event'], $eventIds)) {
@@ -120,9 +173,6 @@ $app->post('/qr/read', function (Request $request, Response $response) {
             $stmt->bindValue(':user', $user, PDO::PARAM_INT);
             $result=$stmt->execute();
 
-        }else{
-            $result="You can't get more of these coins.";
-        }
 
         $db = null;
         $response->getBody()->write(json_encode($result));

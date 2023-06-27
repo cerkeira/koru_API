@@ -76,6 +76,8 @@ $app->post('/event/vote/{event}', function (Request $request, Response $response
 
     $balanceSql = "SELECT type, amount, coin_id_coin FROM transaction WHERE user_has_event_event_id_event = :event AND user_has_event_user_id_user = :user AND coin_id_coin = :coin";
 
+    $voteSql = "SELECT vote_start, vote_end FROM event WHERE id_event = :event";
+
     try {
 
         $db = new Db();
@@ -87,6 +89,11 @@ $app->post('/event/vote/{event}', function (Request $request, Response $response
         $stmt->bindParam(':coin', $coin, PDO::PARAM_INT);
         $stmt->execute();
         $transactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmt = $conn->prepare($voteSql);
+        $stmt->bindValue(':event', $event, PDO::PARAM_INT);
+        $stmt->execute();
+        $date = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $db = null;
 
 
@@ -106,7 +113,7 @@ $app->post('/event/vote/{event}', function (Request $request, Response $response
             }
         }
 
-        if ($responseData >= $amount) {
+        if ($responseData >= $amount && date('Y-m-d H:i:s') < $date[0]['vote_end'] && date('Y-m-d H:i:s') > $date[0]['vote_start']){
             $db = new Db();
             $conn = $db->connect();
 
