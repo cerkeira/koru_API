@@ -337,6 +337,11 @@ $app->get('/event/rank/{id}', function (Request $request, Response $response) {
             if (file_exists($imageFullPath)) {
                 $imageContent = file_get_contents($imageFullPath);
                 return base64_encode($imageContent);
+            }else{
+                $imagePath = 'test.png';
+                $imageFullPath = __DIR__ . '/../images/project/' . $imagePath;
+                $imageContent = file_get_contents($imageFullPath);
+                return base64_encode($imageContent);
             }
             return null;
         }
