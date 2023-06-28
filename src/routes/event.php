@@ -11,7 +11,7 @@ $app->get('/event/balance/{event}', function (Request $request, Response $respon
     $user = $request->getHeaderLine('id');
 
 
-    $sql = "SELECT type, transaction.amount, transaction.coin_id_coin, coin.name_coin FROM transaction INNER JOIN coin ON transaction.coin_id_coin = coin.id_coin WHERE user_has_event_event_id_event = :event AND user_has_event_user_id_user = :user";
+    $sql = "SELECT type, transaction.amount, transaction.coin_id_coin, coin.name_coin, coin.color FROM transaction INNER JOIN coin ON transaction.coin_id_coin = coin.id_coin WHERE user_has_event_event_id_event = :event AND user_has_event_user_id_user = :user";
 
     try {
         $db = new Db();
@@ -31,6 +31,7 @@ $app->get('/event/balance/{event}', function (Request $request, Response $respon
                 if (!isset($responseData[$transaction['name_coin']])) {
                     $responseData[$transaction['name_coin']] = [
                         'id' => $transaction['coin_id_coin'],
+                        'color' => $transaction['color'],
                         'balance' => max(0, $transaction['amount'])
                     ];
                 } else {
@@ -41,6 +42,7 @@ $app->get('/event/balance/{event}', function (Request $request, Response $respon
                 if (!isset($responseData[$transaction['name_coin']])) {
                     $responseData[$transaction['name_coin']] = [
                         'id' => $transaction['coin_id_coin'],
+                        'color' => $transaction['color'],
                         'balance' => max(0, $transaction['amount'])
                     ];
                 } else {
@@ -251,7 +253,7 @@ $app->get('/event/info/{id}', function (Request $request, Response $response) {
   WHERE
     event.id_event = :id";
 
-    $secondSql = " SELECT id_coin, name_coin FROM coin WHERE event_id_event = :id";
+    $secondSql = " SELECT id_coin, name_coin, color FROM coin WHERE event_id_event = :id";
 
     try {
         $db = new Db();
@@ -306,12 +308,11 @@ $app->get('/event/info/{id}', function (Request $request, Response $response) {
 $app->get('/event/rank/{id}', function (Request $request, Response $response) {
     $id = $request->getAttribute('id');
 
-    $sql = "SELECT project_id_project, transaction.coin_id_coin, transaction.amount, project.name_project, project.logo_project, coin.name_coin FROM transaction INNER JOIN project ON transaction.project_id_project = project.id_project INNER JOIN coin ON transaction.coin_id_coin = coin.id_coin WHERE user_has_event_event_id_event = :id AND type = 2";
+    $sql = "SELECT project_id_project, transaction.coin_id_coin, transaction.amount, project.name_project, project.logo_project, coin.name_coin, coin.color FROM transaction INNER JOIN project ON transaction.project_id_project = project.id_project INNER JOIN coin ON transaction.coin_id_coin = coin.id_coin WHERE user_has_event_event_id_event = :id AND type = 2";
 
     $projectSql = "SELECT id_project, name_project, logo_project FROM project WHERE event_id_event = :id";
 
-    $coinsSql = "SELECT id_coin, name_coin FROM coin WHERE event_id_event = :id";
-
+    $coinsSql = "SELECT id_coin, name_coin, color FROM coin WHERE event_id_event = :id";
 
     try {
         $db = new Db();
@@ -327,8 +328,14 @@ $app->get('/event/rank/{id}', function (Request $request, Response $response) {
         $stmt->execute();
         $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        function convertImageToBase64($imagePath)
-        {
+        $stmt = $conn->prepare($coinsSql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $coins = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $final = array();
+
+        function convertImageToBase64($imagePath) {
             if ($imagePath == '') {
                 $imagePath = 'test.png';
             }
@@ -346,27 +353,33 @@ $app->get('/event/rank/{id}', function (Request $request, Response $response) {
             return null;
         }
 
-        $final = array();
-
-        foreach ($result as $item) {
-            $projectId = $item['project_id_project'];
-            $coinId = $item['coin_id_coin'];
-            $coinName = $item['name_coin'];
-            $amount = $item['amount'];
-            $name = $item['name_project'];
-            $logo = convertImageToBase64($item['logo_project']);
-
-            
+        foreach ($coins as $item) {
+            $coinId = $item['id_coin'];
 
             if (!isset($final[$coinId])) {
+
+            $coinColor = $item['color'];
+            $coinName = $item['name_coin'];
+
                 $final[$coinId] = array(
                     "coin_id_coin" => $coinId,
+                    "color" => $coinColor,
                     "name_coin" => $coinName,
                     "projects" => array()
                 );
             }
+        }
+
+        foreach ($result as $item) {
+            $projectId = $item['project_id_project'];
+            $coinId = $item['coin_id_coin'];
+            $amount = $item['amount'];
 
             if (!isset($final[$coinId]['projects'][$projectId])) {
+
+                $name = $item['name_project'];
+                $logo = convertImageToBase64($item['logo_project']);
+
                 $final[$coinId]['projects'][$projectId] = array(
                     "id_project" => $projectId,
                     "name_project" => $name,
@@ -377,8 +390,33 @@ $app->get('/event/rank/{id}', function (Request $request, Response $response) {
 
             $final[$coinId]['projects'][$projectId]['amount_sum'] += $amount;
         }
+        
+        foreach ($final as &$coinData) {
+            foreach ($projects as $project) {
+                $projectId = $project['id_project'];
 
+                $projectExists = false;
+                foreach ($coinData['projects'] as $existingProject) {
+                    if ($existingProject['id_project'] === $projectId) {
+                        $projectExists = true;
+                        break;
+                    }
+                }
+        
+                if (!$projectExists) {
+                    $projectName = $project['name_project'];
+                    $projectLogo = convertImageToBase64($project['logo_project']);
 
+                    $coinData['projects'][] = array(
+                        "id_project" => $projectId,
+                        "name_project" => $projectName,
+                        "logo_project" => $projectLogo,
+                        "amount_sum" => 0,
+                    );
+                }
+            }
+        }
+        
         foreach ($final as &$coinData) {
             $coinData['projects'] = array_values($coinData['projects']);
             usort($coinData['projects'], function ($a, $b) {
@@ -386,99 +424,6 @@ $app->get('/event/rank/{id}', function (Request $request, Response $response) {
                 $sumB = $b['amount_sum'];
                 return $sumB <=> $sumA;
             });
-        }
-
-        if ($final != []){
-
-            foreach ($projects as $project) {
-                $projectId = $project['id_project'];
-                $projectName = $project['name_project'];
-                $projectLogo = convertImageToBase64($project['logo_project']);
-            
-                $found = false;
-            
-                foreach ($final as &$coinData) {
-                    foreach ($coinData['projects'] as &$existingProject) {
-                        if ($existingProject['id_project'] === $projectId) {
-                            $found = true;
-                            break 2;
-                        }
-                    }
-                }
-            
-                if (!$found) {
-                    foreach ($final as &$coinData) {
-                        $coinData['projects'][] = array(
-                            "id_project" => $projectId,
-                            "name_project" => $projectName,
-                            "logo_project" => $projectLogo,
-                            "amount_sum" => 0,
-                        );
-                    }
-                }
-            }
-        }else{
-        $stmt = $conn->prepare($coinsSql);
-        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        $stmt->execute();
-        $coins = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach ($coins as $item) {
-            $coinId = $item['id_coin'];
-            $coinName = $item['name_coin'];
-            
-
-            if (!isset($final[$coinId])) {
-                $final[$coinId] = array(
-                    "coin_id_coin" => $coinId,
-                    "name_coin" => $coinName,
-                    "projects" => array()
-                );
-            }
-        }
-
-            foreach ($projects as $project) {
-                $projectId = $project['id_project'];
-                $projectName = $project['name_project'];
-                $projectLogo = convertImageToBase64($project['logo_project']);
-                foreach ($final as &$coinData) {
-                    $coinData['projects'][] = array(
-                        "id_project" => $projectId,
-                        "name_project" => $projectName,
-                        "logo_project" => $projectLogo,
-                        "amount_sum" => 0,
-                    );
-                }
-        }
-    }
-
-
-        foreach ($projects as $project) {
-            $projectId = $project['id_project'];
-            $projectName = $project['name_project'];
-            $projectLogo = convertImageToBase64($project['logo_project']);
-        
-            $found = false;
-        
-            foreach ($final as &$coinData) {
-                foreach ($coinData['projects'] as &$existingProject) {
-                    if ($existingProject['id_project'] === $projectId) {
-                        $found = true;
-                        break 2;
-                    }
-                }
-            }
-        
-            if (!$found) {
-                foreach ($final as &$coinData) {
-                    $coinData['projects'][] = array(
-                        "id_project" => $projectId,
-                        "name_project" => $projectName,
-                        "logo_project" => $projectLogo,
-                        "amount_sum" => 0,
-                    );
-                }
-            }
         }
 
         $db = null;
