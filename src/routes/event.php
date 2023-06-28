@@ -113,7 +113,8 @@ $app->post('/event/vote/{event}', function (Request $request, Response $response
             }
         }
 
-        if ($responseData >= $amount && date('Y-m-d H:i:s') < $date[0]['vote_end'] && date('Y-m-d H:i:s') > $date[0]['vote_start']){
+        if ($responseData >= $amount){
+            if(date('Y-m-d H:i:s') < $date[0]['vote_end'] && date('Y-m-d H:i:s') > $date[0]['vote_start']){
             $db = new Db();
             $conn = $db->connect();
 
@@ -126,9 +127,12 @@ $app->post('/event/vote/{event}', function (Request $request, Response $response
             $stmt->bindParam(':user', $user, PDO::PARAM_INT);
 
             $result = $stmt->execute();
-        } else {
-            $result = "You don't have enough coins.";
-        }
+            }else{
+                $result = "Voting is not enabled at the moment.";
+            }
+        }else{
+                $result = "You don't have enough coins.";
+            }
 
         $db = null;
         $response->getBody()->write(json_encode($result));
@@ -326,7 +330,7 @@ $app->get('/event/rank/{id}', function (Request $request, Response $response) {
         function convertImageToBase64($imagePath)
         {
             if ($imagePath == '') {
-                $imagePath = 'test.jpg';
+                $imagePath = 'test.png';
             }
             $imageFullPath = __DIR__ . '/../images/project/' . $imagePath;
 
