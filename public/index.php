@@ -8,7 +8,6 @@ use App\Models\DB;
 
 require '../src/middleware/TokenAuth.php';
 
-
 require_once __DIR__ . '/../vendor/autoload.php';
 
 $app = AppFactory::create();
@@ -24,6 +23,24 @@ $app->get('/welcome/test', function (Request $request, Response $response) {
    $response->getBody()->write('Hello World! This is the KoruDB API.');
    return $response;
 });
+
+function convertImageToBase64($path, $imagePath) {
+  if ($imagePath == '') {
+      $imagePath = 'test.png';
+  }
+  $imageFullPath = __DIR__ . '/../src/images/'.$path.'/' . $imagePath;
+
+  if (file_exists($imageFullPath)) {
+      $imageContent = file_get_contents($imageFullPath);
+      return base64_encode($imageContent);
+  }else{
+      $imagePath = 'test.png';
+      $imageFullPath = __DIR__ . '/../src/images/'.$path.'/' . $imagePath;
+      $imageContent = file_get_contents($imageFullPath);
+      return base64_encode($imageContent);
+  }
+  return null;
+}
 
 $whitelist = [
   // '/proj/koru/user'

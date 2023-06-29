@@ -237,7 +237,6 @@ $app->get('/event/info/{id}', function (Request $request, Response $response) {
     $firstSql = "SELECT
     name_event,
     des_event,
-    logo_event,
     start_date,
     end_date,
     vote_start,
@@ -275,20 +274,6 @@ $app->get('/event/info/{id}', function (Request $request, Response $response) {
         );
 
         $db = null;
-        
-        if($result['info'][0]['logo_event'] != ''){
-            $imagePath = $result['info'][0]['logo_event'];
-        }else{
-            $imagePath = 'test.png';
-        }
-        $imageFullPath = __DIR__ . '/../images/event/' . $imagePath;
-
-
-        if (file_exists($imageFullPath)) {
-            $imageContent = file_get_contents($imageFullPath);
-
-            $result['info'][0]['logo_event'] = base64_encode($imageContent);
-        }
 
         $response->getBody()->write(json_encode($result));
         return $response
@@ -335,24 +320,6 @@ $app->get('/event/rank/{id}', function (Request $request, Response $response) {
 
         $final = array();
 
-        function convertImageToBase64($imagePath) {
-            if ($imagePath == '') {
-                $imagePath = 'test.png';
-            }
-            $imageFullPath = __DIR__ . '/../images/project/' . $imagePath;
-
-            if (file_exists($imageFullPath)) {
-                $imageContent = file_get_contents($imageFullPath);
-                return base64_encode($imageContent);
-            }else{
-                $imagePath = 'test.png';
-                $imageFullPath = __DIR__ . '/../images/project/' . $imagePath;
-                $imageContent = file_get_contents($imageFullPath);
-                return base64_encode($imageContent);
-            }
-            return null;
-        }
-
         foreach ($coins as $item) {
             $coinId = $item['id_coin'];
 
@@ -378,7 +345,7 @@ $app->get('/event/rank/{id}', function (Request $request, Response $response) {
             if (!isset($final[$coinId]['projects'][$projectId])) {
 
                 $name = $item['name_project'];
-                $logo = convertImageToBase64($item['logo_project']);
+                $logo = convertImageToBase64('project',$item['logo_project']);
 
                 $final[$coinId]['projects'][$projectId] = array(
                     "id_project" => $projectId,
@@ -405,7 +372,7 @@ $app->get('/event/rank/{id}', function (Request $request, Response $response) {
         
                 if (!$projectExists) {
                     $projectName = $project['name_project'];
-                    $projectLogo = convertImageToBase64($project['logo_project']);
+                    $projectLogo = convertImageToBase64('project',$project['logo_project']);
 
                     $coinData['projects'][] = array(
                         "id_project" => $projectId,
@@ -463,26 +430,10 @@ $app->get('/event/projects/{event}', function (Request $request, Response $respo
         $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $db = null;
-
         
         foreach ($result as &$item) {
-
-            if($item['logo_project'] == ''){
-                $imagePath = 'test.png';
-            }else{
-                $imagePath = $item['logo_project'];
-            }
-
-            if ($imagePath != null) {
-                $imageFullPath = __DIR__ . '/../images/project/' . $imagePath;
-
-                if (file_exists($imageFullPath)) {
-                    $imageContent = file_get_contents($imageFullPath);
-                    $item['logo_project'] = base64_encode($imageContent);
-                }
-            }
+            $item['logo_project']=convertImageToBase64('project',$item['logo_project']);
         }
-
 
         $response->getBody()->write(json_encode($result));
         return $response
