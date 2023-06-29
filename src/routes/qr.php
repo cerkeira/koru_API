@@ -58,7 +58,7 @@ $app->post('/qr/create', function (Request $request, Response $response) {
     }
 });
 
-$app->get('/qr/read', function (Request $request, Response $response) {
+$app->post('/qr/firstread', function (Request $request, Response $response) {
     $data = $request->getParsedBody();
     $token = $data["token"];
     $user = $request->getHeaderLine('id');
@@ -77,25 +77,25 @@ $app->get('/qr/read', function (Request $request, Response $response) {
         $stmt = $conn->prepare($tokenSql);
         $stmt->bindValue(':token', $token, PDO::PARAM_INT);
         $stmt->execute();
-        $token = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $transaction = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $stmt = $conn->prepare($sql);
-        $stmt->bindValue(':coin', $token[0]['coin_id_coin'], PDO::PARAM_INT);
+        $stmt->bindValue(':coin', $transaction[0]['coin_id_coin'], PDO::PARAM_INT);
         $stmt->execute();
         $event = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $stmt = $conn->prepare($norepeatSql);
-        $stmt->bindValue(':coin', $token[0]['coin_id_coin'], PDO::PARAM_INT);
+        $stmt->bindValue(':coin', $transaction[0]['coin_id_coin'], PDO::PARAM_INT);
         $stmt->bindValue(':user', $user, PDO::PARAM_INT);
         $stmt->execute();
         $norepeat = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        if($norepeat[0]['COUNT(id_transaction)'] == 0 && $token[0]['expire_date'] >= date('Y-m-d H:i:s')){
+        if($norepeat[0]['COUNT(id_transaction)'] == 0 && $transaction[0]['expire_date'] >= date('Y-m-d H:i:s')){
 
                 $result = array(
                     "name_event" => $event[0]['name_event'],
-                    "coin" => $token[0]['coin_id_coin'],
-                    "amount" => $token[0]['amount'],
+                    "coin" => $transaction[0]['coin_id_coin'],
+                    "amount" => $transaction[0]['amount'],
                     "logo_event" =>  convertImageToBase64('event',$event[0]['logo_event'])
                 );
 
@@ -122,7 +122,7 @@ $app->get('/qr/read', function (Request $request, Response $response) {
 
 });
 
-$app->post('/qr/read', function (Request $request, Response $response) {
+$app->post('/qr/secondread', function (Request $request, Response $response) {
     $data = $request->getParsedBody();
     $token = $data["token"];
     $user = $request->getHeaderLine('id');
@@ -145,10 +145,10 @@ $app->post('/qr/read', function (Request $request, Response $response) {
         $stmt = $conn->prepare($tokenSql);
         $stmt->bindValue(':token', $token, PDO::PARAM_INT);
         $stmt->execute();
-        $token = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $transaction = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $stmt = $conn->prepare($sql);
-        $stmt->bindValue(':coin', $token[0]['coin_id_coin'], PDO::PARAM_INT);
+        $stmt->bindValue(':coin', $transaction[0]['coin_id_coin'], PDO::PARAM_INT);
         $stmt->execute();
         $event = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -162,14 +162,14 @@ $app->post('/qr/read', function (Request $request, Response $response) {
                     $stmt = $conn->prepare($eventSql);
                     $stmt->bindValue(':user', $user, PDO::PARAM_INT);
                     $stmt->bindValue(':event', $event[0]['event_id_event'], PDO::PARAM_INT);
-                    $stmt->bindValue(':role', $token[0]['role'], PDO::PARAM_INT);
+                    $stmt->bindValue(':role', $transaction[0]['role'], PDO::PARAM_INT);
                     $stmt->execute();
             }
 
             $stmt = $conn->prepare($transactionSql);
             $stmt->bindValue(':type', 1, PDO::PARAM_INT);
-            $stmt->bindValue(':amount', $token[0]['amount'], PDO::PARAM_INT);
-            $stmt->bindValue(':coin', $token[0]['coin_id_coin'], PDO::PARAM_INT);
+            $stmt->bindValue(':amount', $transaction[0]['amount'], PDO::PARAM_INT);
+            $stmt->bindValue(':coin', $transaction[0]['coin_id_coin'], PDO::PARAM_INT);
             $stmt->bindValue(':event', $event[0]['event_id_event'], PDO::PARAM_INT);
             $stmt->bindValue(':user', $user, PDO::PARAM_INT);
             $result=$stmt->execute();
