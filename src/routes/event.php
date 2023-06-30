@@ -110,8 +110,9 @@ $app->post('/event/vote/{event}', function (Request $request, Response $response
             if ($transaction['type'] == 2) {
                 if (!isset($responseData)) {
                     $responseData =  max(0, $transaction['amount']);
+                }else{
+                    $responseData = max(0, $responseData - $transaction['amount']);
                 }
-                $responseData = max(0, $responseData - $transaction['amount']);
             }
         }
 
