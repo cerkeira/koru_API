@@ -100,9 +100,10 @@ $app->post('/qr/firstread', function (Request $request, Response $response) {
                     "amount" => $transaction[0]['amount'],
                     "logo_event" =>  convertImageToBase64('event',$event[0]['logo_event'])
                 );
-
+                $status = 200;
         }else{
             $result="You can't get more of these coins.";
+            $status=500;
         }
     
 
@@ -110,7 +111,7 @@ $app->post('/qr/firstread', function (Request $request, Response $response) {
         $response->getBody()->write(json_encode($result));
         return $response
             ->withHeader('content-type', 'application/json')
-            ->withStatus(200);
+            ->withStatus($status);
     } catch (PDOException $e) {
         $error = array(
             "message" => $e->getMessage()
