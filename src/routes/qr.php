@@ -64,7 +64,7 @@ $app->post('/qr/firstread', function (Request $request, Response $response) {
     $user = $request->getHeaderLine('id');
 
 
-    $sql = "SELECT coin.event_id_event, event.name_event, event.logo_event FROM coin INNER JOIN event ON coin.event_id_event = event.id_event WHERE id_coin = :coin";
+    $sql = "SELECT coin.event_id_event, event.name_event, event.logo_event, coin.name_coin FROM coin INNER JOIN event ON coin.event_id_event = event.id_event WHERE id_coin = :coin";
 
     $tokenSql = "SELECT expire_date, amount, coin_id_coin, role FROM transaction_token WHERE token = :token";
 
@@ -94,6 +94,7 @@ $app->post('/qr/firstread', function (Request $request, Response $response) {
 
                 $result = array(
                     "name_event" => $event[0]['name_event'],
+                    "name_coin" => $event[0]['name_coin'],
                     "coin" => $transaction[0]['coin_id_coin'],
                     "amount" => $transaction[0]['amount'],
                     "logo_event" =>  convertImageToBase64('event',$event[0]['logo_event'])
