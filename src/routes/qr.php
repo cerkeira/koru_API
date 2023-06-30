@@ -93,6 +93,7 @@ $app->post('/qr/firstread', function (Request $request, Response $response) {
         if($norepeat[0]['COUNT(id_transaction)'] == 0 && $transaction[0]['expire_date'] >= date('Y-m-d H:i:s')){
 
                 $result = array(
+                    "id_event" => $event[0]['event_id_event'],
                     "name_event" => $event[0]['name_event'],
                     "name_coin" => $event[0]['name_coin'],
                     "coin" => $transaction[0]['coin_id_coin'],
