@@ -238,6 +238,7 @@ $app->get('/event/info/{id}', function (Request $request, Response $response) {
     $firstSql = "SELECT
     name_event,
     des_event,
+    logo_event,
     start_date,
     end_date,
     vote_start,
@@ -268,6 +269,8 @@ $app->get('/event/info/{id}', function (Request $request, Response $response) {
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
         $second = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $first[0]['logo_event']=convertImageToBase64('event',$first[0]['logo_event']);
 
         $result = array(
             "info" => $first,
